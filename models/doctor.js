@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const DoctorSchema = mongoose.Schema({
     username: {type: String, required: true, unique: true},
@@ -11,4 +11,4 @@ const DoctorSchema = mongoose.Schema({
     specializations: {type: String, required: true,},
 });
 
-module.exports = mongoose.model('Doctor', DoctorSchema);
+module.exports = mongoose.model("Doctor", DoctorSchema);

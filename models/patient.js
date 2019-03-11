@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const PatientSchema = mongoose.Schema({
     username: {type: String, required: true, unique: true},
@@ -9,4 +9,4 @@ const PatientSchema = mongoose.Schema({
     phone: {type: String, required: true, unique: true},
 });
 
-module.exports = mongoose.model('Patient', PatientSchema);
+module.exports = mongoose.model("Patient", PatientSchema);
