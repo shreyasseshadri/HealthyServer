@@ -1,12 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const crypt = require("bcrypt-nodejs");
-const Patient = require("../models/patient");
-const Doctor = require("../models/doctor");
-
-function checkPassword(password, hash) {
-    return crypt.compareSync(password, hash);
-}
+const passport = require("passport");
 
 router.post("/patient", function (req, res, next) {
     req.checkBody("username", "Invalid username").notEmpty().trim();
@@ -19,17 +13,13 @@ router.post("/patient", function (req, res, next) {
         res.json({success: false, error: error_msgs});
         return;
     }
-    Patient.findOne({username: req.body.username}, (err, doc) => {
-        if (err != null || doc == null || !checkPassword(req.body.password, doc.password)) {
+    passport.authenticate("PatientAuth", (err, doc) => {
+        if (err != null || doc === false) {
             res.json({success: false, error: "invalid username/password"});
             return;
         }
-        res.json({
-            success: true, patient: Object.assign(doc.toObject(), {
-                password: undefined, _id: undefined, __v: undefined
-            })
-        });
-    });
+        res.json({success: true, patient: doc,});
+    })(req, res, next);
 });
 
 router.post("/doctor", function (req, res, next) {
@@ -43,17 +33,22 @@ router.post("/doctor", function (req, res, next) {
         res.json({success: false, error: error_msgs});
         return;
     }
-    Doctor.findOne({username: req.body.username}, (err, doc) => {
-        if (err != null || doc == null || !checkPassword(req.body.password, doc.password)) {
+    passport.authenticate("DoctorAuth", (err, doc) => {
+        if (err != null || doc === false) {
             res.json({success: false, error: "invalid username/password"});
             return;
         }
-        res.json({
-            success: true, doctor: Object.assign(doc.toObject(), {
-                password: undefined, _id: undefined, __v: undefined
-            })
-        });
-    });
+        res.json({success: true, doctor: doc,});
+    })(req, res, next);
+});
+
+router.post("/state", function (req, res) {
+    res.json({auth: req.isAuthenticated(),});
+});
+
+router.post("/logout", function (req, res) {
+    req.logout();
+    res.json({success: true});
 });
 
 module.exports = router;

@@ -3,6 +3,7 @@ const express = require("express");
 const expressValidator = require("express-validator");
 const path = require("path");
 const session = require("express-session");
+const passport = require("passport");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const mongoose = require("mongoose");
@@ -16,14 +17,7 @@ mongoose.Promise = global.Promise;
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "MongoDB connection error:"));
 
-const sessionConfig = {
-    secret: "SECRET",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        maxAge: 60000 * 60
-    },
-};
+require("./config/passport")(passport);
 
 const allowCrossDomain = function (req, res, next) {
     res.header("Access-Control-Allow-Credentials", true);
@@ -48,7 +42,13 @@ app.use(express.urlencoded({extended: false}));
 app.use(expressValidator());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
-app.use(session(sessionConfig));
+app.use(session({
+    secret: "secret",
+    saveUninitialized: true,
+    resave: true,
+}));
+app.use(passport.initialize());
+app.use(passport.session());
 app.use(allowCrossDomain);
 app.use("/register", registerRouter);
 app.use("/auth", authRouter);
