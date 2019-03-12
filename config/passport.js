@@ -8,6 +8,15 @@ function checkPassword(password, hash) {
 }
 
 module.exports = function (passport) {
+    passport.serializeUser(function (user, done) {
+        done(null, user.type + " " + user._id);
+    });
+
+    passport.deserializeUser(function (id, done) {
+        let tmp = id.split(" ");
+        done(null, {_id: tmp[1], type: tmp[0]});
+    });
+
     passport.use("PatientAuth",
         new LocalStrategy(function (username, password, done) {
             Patient.findOne({username: username}, (err, doc) => {
@@ -17,7 +26,6 @@ module.exports = function (passport) {
                     return done(null, false);
                 return done(null, Object.assign(doc.toObject(), {
                     password: undefined,
-                    // _id: undefined,
                     __v: undefined,
                     type: "patient",
                 }));
@@ -34,7 +42,6 @@ module.exports = function (passport) {
                     return done(null, false);
                 return done(null, Object.assign(doc.toObject(), {
                     password: undefined,
-                    // _id: undefined,
                     __v: undefined,
                     type: "doctor",
                 }));
