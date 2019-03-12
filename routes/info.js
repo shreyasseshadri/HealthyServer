@@ -3,7 +3,36 @@ const router = express.Router();
 const Patient = require("../models/patient");
 const Doctor = require("../models/doctor");
 
-router.post("/patient", function (req, res, next) {
+router.post("/self", function (req, res) {
+    if (!req.isAuthenticated()) {
+        res.json({success: false, error: "Auth error"});
+        return;
+    }
+    switch (req.user.type) {
+        case "patient":
+            Patient.findById(req.user._id, {password: false, _id: false, __v: false}, (err, doc) => {
+                if (err != null || doc == null) {
+                    res.json({success: false, error: "Auth error"});
+                    return;
+                }
+                res.json({success: true, patient: doc.toObject(),});
+            });
+            break;
+        case "doctor":
+            Doctor.findById(req.user._id, {password: false, _id: false, __v: false}, (err, doc) => {
+                if (err != null || doc == null) {
+                    res.json({success: false, error: "Auth error"});
+                    return;
+                }
+                res.json({success: true, doctor: doc.toObject(),});
+            });
+            break;
+        default:
+            res.json({success: false, error: "Auth error"});
+    }
+});
+
+router.post("/patient", function (req, res) {
     req.checkBody("username", "Invalid username").notEmpty().trim();
     const errors = req.validationErrors();
     if (errors) {
@@ -22,7 +51,7 @@ router.post("/patient", function (req, res, next) {
     });
 });
 
-router.post("/doctor", function (req, res, next) {
+router.post("/doctor", function (req, res) {
     req.checkBody("username", "Invalid username").notEmpty().trim();
     const errors = req.validationErrors();
     if (errors) {
@@ -42,7 +71,7 @@ router.post("/doctor", function (req, res, next) {
 });
 
 
-router.post("/doctors", function (req, res, next) {
+router.post("/doctors", function (req, res) {
     const errors = req.validationErrors();
     if (errors) {
         let error_msgs = errors.map(function (err) {
@@ -59,4 +88,5 @@ router.post("/doctors", function (req, res, next) {
         res.json({success: true, doctors: docs});
     });
 });
+
 module.exports = router;
