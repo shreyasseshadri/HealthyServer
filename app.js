@@ -8,10 +8,6 @@ const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const mongoose = require("mongoose");
 
-const registerRouter = require("./routes/register");
-const authRouter = require("./routes/auth");
-const infoRouter = require("./routes/info");
-
 mongoose.connect(process.env.MONGO_LOC, {useNewUrlParser: true});
 mongoose.Promise = global.Promise;
 const db = mongoose.connection;
@@ -31,6 +27,8 @@ const allowCrossDomain = function (req, res, next) {
     }
 };
 const app = express();
+const httpServer = require('http').Server(app);
+const expressWs = require("express-ws")(app, httpServer);
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));
@@ -50,9 +48,16 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(allowCrossDomain);
+
+const registerRouter = require("./routes/register");
+const authRouter = require("./routes/auth");
+const infoRouter = require("./routes/info");
+const chatRouter = require("./routes/chat");
+
 app.use("/register", registerRouter);
 app.use("/auth", authRouter);
 app.use("/info", infoRouter);
+app.use("/chat", chatRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
@@ -70,4 +75,4 @@ app.use(function (err, req, res) {
     res.render("error");
 });
 
-module.exports = app;
+module.exports = {app: app, httpServer: httpServer};
