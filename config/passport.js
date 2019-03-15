@@ -9,12 +9,11 @@ function checkPassword(password, hash) {
 
 module.exports = function (passport) {
     passport.serializeUser(function (user, done) {
-        done(null, user.type + " " + user._id);
+        done(null, JSON.stringify({type: user.type, _id: user._id}));
     });
 
     passport.deserializeUser(function (id, done) {
-        let tmp = id.split(" ");
-        done(null, {_id: tmp[1], type: tmp[0]});
+        done(null, JSON.parse(id));
     });
 
     passport.use("PatientAuth",
