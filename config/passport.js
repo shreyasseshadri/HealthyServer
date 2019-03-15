@@ -9,7 +9,7 @@ function checkPassword(password, hash) {
 
 module.exports = function (passport) {
     passport.serializeUser(function (user, done) {
-        done(null, JSON.stringify({type: user.type, _id: user._id}));
+        done(null, JSON.stringify({type: user.type, _id: user._id, username: user.username}));
     });
 
     passport.deserializeUser(function (id, done) {
