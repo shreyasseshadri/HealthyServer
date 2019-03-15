@@ -4,8 +4,10 @@ const router = express.Router();
 const conn = {};
 
 router.ws("/", function (ws, req) {
-    if (!req.isAuthenticated())
+    if (!req.isAuthenticated()) {
         ws.terminate();
+        return;
+    }
     ws.user = req.user;
     // Todo: Handle multiple ws per user with array if needed
     conn[ws.user.username] = ws;
