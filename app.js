@@ -8,6 +8,8 @@ const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const mongoose = require("mongoose");
 
+mongoose.set('useFindAndModify', false);
+mongoose.set('useCreateIndex', true);
 mongoose.connect(process.env.MONGO_LOC, {useNewUrlParser: true});
 mongoose.Promise = global.Promise;
 const db = mongoose.connection;
