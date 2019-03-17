@@ -6,6 +6,8 @@ const Patient = require("../models/patient");
 const Doctor = require("../models/doctor");
 
 const conn = {}, conversationCache = {};
+// Note: Undelivered message count is volatile
+const undeliveredCount = {};
 
 router.ws("/", function (ws, req) {
     if (!req.isAuthenticated()) {
@@ -53,6 +55,12 @@ function process(ws, msg) {
                 };
                 if (conn[to] != null) {
                     conn[to].send(JSON.stringify({type: "chat_msg", chat: chat}));
+                } else {
+                    if (undeliveredCount[to] == null)
+                        undeliveredCount[to] = {};
+                    if (undeliveredCount[to][from] == null)
+                        undeliveredCount[to][from] = 0;
+                    ++undeliveredCount[to][from];
                 }
                 if (conn[from] != null) {
                     conn[from].send(JSON.stringify({type: "chat_msg", chat: chat}));
@@ -92,20 +100,33 @@ function process(ws, msg) {
     }
 }
 
+function undeliveredCountHelper(user, conversation) {
+    if (undeliveredCount[user.username] == null)
+        return 0;
+    let fromType = user.type === "patient" ? "doctor" : "patient";
+    return undeliveredCount[user.username][conversation[fromType]] || 0;
+}
+
 router.post("/conversations", function (req, res) {
     if (!req.isAuthenticated()) {
         res.json({success: false, error: "Auth error"});
         return;
     }
+    console.log(undeliveredCount);
     Conversation.find({[req.user.type]: req.user.username},
         {_id: false},
         (err, conversations) => {
             if (err != null) {
                 res.json({success: false,});
             } else {
+                let tmp = conversations.map((c) => ({
+                    doctor: c.doctor,
+                    patient: c.patient,
+                    undelivered: undeliveredCountHelper(req.user, c),
+                }));
                 res.json({
                     success: true,
-                    conversations: conversations || [],
+                    conversations: tmp || [],
                 });
             }
         }
@@ -144,6 +165,7 @@ router.post("/history", function (req, res) {
                             stamp: msg.stamp,
                         }));
                         history.sort((chat1, chat2) => chat1.stamp - chat2.stamp);
+                        undeliveredCount[req.user.username][req.body["peer"]] = 0;
                         res.json({
                             success: true,
                             history: history,
