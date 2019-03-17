@@ -97,6 +97,19 @@ router.post("/conversations", function (req, res) {
         res.json({success: false, error: "Auth error"});
         return;
     }
+    Conversation.find({[req.user.type]: req.user.username},
+        {_id: false},
+        (err, conversations) => {
+            if (err != null) {
+                res.json({success: false,});
+            } else {
+                res.json({
+                    success: true,
+                    conversations: conversations || [],
+                });
+            }
+        }
+    );
 });
 
 router.post("/history", function (req, res) {
