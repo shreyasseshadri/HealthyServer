@@ -1,7 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const Conv = require("../models/conversation");
+const Conversation = require("../models/conversation");
 const Message = require("../models/message");
+const Patient = require("../models/patient");
+const Doctor = require("../models/doctor");
 
 const conn = {}, conversationCache = {};
 
@@ -38,45 +40,51 @@ function process(ws, msg) {
             if (cmd.chat == null || cmd.chat["to"] == null || cmd.chat["msg"] == null)
                 break;
             let to = cmd.chat.to, from = ws.user.username;
-            let chat = {
-                to: to,
-                from: from,
-                msg: String(cmd.chat.msg),
-                stamp: Math.floor((new Date).getTime() / 1000),
-            };
-            // Todo: check if patient-doctor pair
-            if (conn[to] != null) {
-                conn[to].send(JSON.stringify({type: "chat_msg", chat: chat}));
-            }
-            if (conn[from] != null) {
-                conn[from].send(JSON.stringify({type: "chat_msg", chat: chat}));
-            }
-            let params = msgHelper(to, from);
-            if (conversationCache[params.key] != null) {
-                Message({
-                    cid: conversationCache[params.key],
-                    msg: chat.msg,
-                    from1: params.peer1 === from,
-                    stamp: chat.stamp,
-                }).save();
-            } else {
-                // Todo: verify to-peer exists
-                Conv.findOneAndUpdate(
-                    {peer1: params.peer1, peer2: params.peer2},
-                    {},
-                    {upsert: true, new: true,},
-                    (err, doc) => {
-                        if (err != null || doc == null)
-                            return;
-                        conversationCache[params.key] = doc._id;
-                        Message({
-                            cid: conversationCache[params.key],
-                            msg: chat.msg,
-                            from1: params.peer1 === from,
-                            stamp: chat.stamp,
-                        }).save();
-                    });
-            }
+            let toModel = ws.user.type === "patient" ? Doctor : Patient;
+            // Todo: Cache peer exist check
+            toModel.findOne({username: to}, {}, (err, doc) => {
+                if (err != null || doc == null)
+                    return;
+                let chat = {
+                    to: to,
+                    from: from,
+                    msg: String(cmd.chat.msg),
+                    stamp: Math.floor((new Date).getTime() / 1000),
+                };
+                if (conn[to] != null) {
+                    conn[to].send(JSON.stringify({type: "chat_msg", chat: chat}));
+                }
+                if (conn[from] != null) {
+                    conn[from].send(JSON.stringify({type: "chat_msg", chat: chat}));
+                }
+                let doctor = ws.user.type === "doctor" ? from : to,
+                    patient = ws.user.type === "doctor" ? to : from;
+                let key = doctor + " " + patient;
+                if (conversationCache[key] != null) {
+                    Message({
+                        cid: conversationCache[key],
+                        msg: chat.msg,
+                        fromDoctor: doctor === from,
+                        stamp: chat.stamp,
+                    }).save();
+                } else {
+                    Conversation.findOneAndUpdate(
+                        {doctor: doctor, patient: patient},
+                        {},
+                        {upsert: true, new: true,},
+                        (err, doc) => {
+                            if (err != null || doc == null)
+                                return;
+                            conversationCache[key] = doc._id;
+                            Message({
+                                cid: conversationCache[key],
+                                msg: chat.msg,
+                                fromDoctor: doctor === from,
+                                stamp: chat.stamp,
+                            }).save();
+                        });
+                }
+            });
         }
             break;
         default:
@@ -105,41 +113,32 @@ router.post("/history", function (req, res) {
         res.json({success: false, error: error_msgs});
         return;
     }
-    let params = msgHelper(req.user.username, req.body["peer"]);
-    Conv.findOne({peer1: params.peer1, peer2: params.peer2}, (err, conversation) => {
-        if (err != null || conversation == null) {
-            res.json({success: true, history: []});
-        } else {
-            Message.find({cid: conversation._id}, (err, docs) => {
-                if (err != null || docs == null) {
-                    res.json({success: true, history: []});
-                } else {
-                    let history = docs.map((msg) => ({
-                        to: msg.from1 === true ? params.peer2 : params.peer1,
-                        from: msg.from1 === true ? params.peer1 : params.peer2,
-                        msg: msg.msg,
-                        stamp: msg.stamp,
-                    }));
-                    history.sort(function (chat1, chat2) {
-                        return chat1.stamp - chat2.stamp;
-                    });
-                    res.json({
-                        success: true,
-                        history: history,
-                    });
-                }
-            });
-        }
-    });
+    let doctor = req.user.type === "doctor" ? req.user.username : req.body["peer"],
+        patient = req.user.type === "doctor" ? req.body["peer"] : req.user.username;
+    Conversation.findOne({doctor: doctor, patient: patient},
+        (err, conversation) => {
+            if (err != null || conversation == null) {
+                res.json({success: false,});
+            } else {
+                Message.find({cid: conversation._id}, (err, docs) => {
+                    if (err != null || docs == null) {
+                        res.json({success: true, history: []});
+                    } else {
+                        let history = docs.map((msg) => ({
+                            to: msg.fromDoctor === true ? patient : doctor,
+                            from: msg.fromDoctor === true ? doctor : patient,
+                            msg: msg.msg,
+                            stamp: msg.stamp,
+                        }));
+                        history.sort((chat1, chat2) => chat1.stamp - chat2.stamp);
+                        res.json({
+                            success: true,
+                            history: history,
+                        });
+                    }
+                });
+            }
+        });
 });
-
-function msgHelper(tmp1, tmp2) {
-    let ret = {
-        peer1: tmp1 < tmp2 ? tmp1 : tmp2,
-        peer2: tmp1 < tmp2 ? tmp2 : tmp1
-    };
-    ret.key = ret.peer1 + " " + ret.peer2;
-    return ret;
-}
 
 module.exports = router;
