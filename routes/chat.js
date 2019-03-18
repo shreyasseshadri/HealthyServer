@@ -112,7 +112,6 @@ router.post("/conversations", function (req, res) {
         res.json({success: false, error: "Auth error"});
         return;
     }
-    console.log(undeliveredCount);
     Conversation.find({[req.user.type]: req.user.username},
         {_id: false},
         (err, conversations) => {
@@ -165,7 +164,9 @@ router.post("/history", function (req, res) {
                             stamp: msg.stamp,
                         }));
                         history.sort((chat1, chat2) => chat1.stamp - chat2.stamp);
-                        undeliveredCount[req.user.username][req.body["peer"]] = 0;
+                        let to = req.user.username, from = req.body["peer"];
+                        if (undeliveredCount[to] != null && undeliveredCount[to][from] != null)
+                            undeliveredCount[to][from] = 0;
                         res.json({
                             success: true,
                             history: history,
