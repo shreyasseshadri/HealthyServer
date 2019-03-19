@@ -55,10 +55,12 @@ const registerRouter = require("./routes/register");
 const authRouter = require("./routes/auth");
 const infoRouter = require("./routes/info");
 const chatRouter = require("./routes/chat");
+const prescriptionRouter = require("./routes/prescription");
 
 app.use("/register", registerRouter);
 app.use("/auth", authRouter);
 app.use("/info", infoRouter);
+app.use("/prescription", prescriptionRouter);
 app.use("/chat", chatRouter);
 
 // catch 404 and forward to error handler
