@@ -8,7 +8,7 @@ const PrescriptionSchema = mongoose.Schema({
         type: [{
             drug: {type: String, required: true},
             count: {type: Number, required: true},
-            dosage: {type: String, enum: ["001", "010", "011", "100", "101", "110", "111",]},
+            dosage: {type: String, enum: ["001", "010", "011", "100", "101", "110", "111", null, undefined]},
             note: String,
         }],
         required: true,

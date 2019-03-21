@@ -47,9 +47,11 @@ router.post("/getAll", function (req, res) {
     }
     Prescription.find({[req.user.type]: req.user.username}, (err, docs) => {
         if (err != null || docs == null)
-            res.json({success: false, error: "Error fetching prescriptions", e:err});
-        else
+            res.json({success: false, error: "Error fetching prescriptions", e: err});
+        else {
+            docs.sort((doc1, doc2) => -(doc1.toi - doc2.toi));
             res.json({success: true, prescriptions: docs});
+        }
     });
 });
 
