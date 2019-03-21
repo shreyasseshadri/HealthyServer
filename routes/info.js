@@ -33,6 +33,10 @@ router.post("/self", function (req, res) {
 });
 
 router.post("/patient", function (req, res) {
+    if (!req.isAuthenticated() || req.user.type !== "doctor") {
+        res.json({success: false, error: "Auth error"});
+        return;
+    }
     req.checkBody("username", "Invalid username").notEmpty().trim();
     const errors = req.validationErrors();
     if (errors) {
@@ -52,6 +56,10 @@ router.post("/patient", function (req, res) {
 });
 
 router.post("/doctor", function (req, res) {
+    if (!req.isAuthenticated()) {
+        res.json({success: false, error: "Auth error"});
+        return;
+    }
     req.checkBody("username", "Invalid username").notEmpty().trim();
     const errors = req.validationErrors();
     if (errors) {
@@ -72,6 +80,10 @@ router.post("/doctor", function (req, res) {
 
 
 router.post("/doctors", function (req, res) {
+    if (!req.isAuthenticated()) {
+        res.json({success: false, error: "Auth error"});
+        return;
+    }
     const errors = req.validationErrors();
     if (errors) {
         let error_msgs = errors.map(function (err) {
