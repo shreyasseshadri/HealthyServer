@@ -1,4 +1,3 @@
-const createError = require("http-errors");
 const express = require("express");
 const expressValidator = require("express-validator");
 const path = require("path");
@@ -30,11 +29,7 @@ const allowCrossDomain = function (req, res, next) {
 };
 const app = express();
 const httpServer = require('http').Server(app);
-const expressWs = require("express-ws")(app, httpServer);
-
-// view engine setup
-app.set("views", path.join(__dirname, "views"));
-app.set("view engine", "pug");
+require("express-ws")(app, httpServer);
 
 app.use(logger("dev"));
 app.use(express.json());
@@ -63,20 +58,10 @@ app.use("/info", infoRouter);
 app.use("/prescription", prescriptionRouter);
 app.use("/chat", chatRouter);
 
-// catch 404 and forward to error handler
-app.use(function (req, res, next) {
-    next(createError(404));
-});
-
 // error handler
-app.use(function (err, req, res) {
-    // set locals, only providing error in development
-    res.locals.message = err.message;
-    res.locals.error = req.app.get("env") === "development" ? err : {};
-
-    // render the error page
-    res.status(err.status || 500);
-    res.render("error");
+app.use(function (req, res) {
+    res.status(404);
+    res.end();
 });
 
 module.exports = {app: app, httpServer: httpServer};
