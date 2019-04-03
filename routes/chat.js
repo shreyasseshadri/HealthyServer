@@ -177,4 +177,59 @@ router.post("/history", function (req, res) {
         });
 });
 
+
+router.post("/unread", function (req, res) {
+    if (!req.isAuthenticated()) {
+        res.json({success: false, error: "Auth error"});
+        return;
+    }
+    req.checkBody("peer", "Invalid peer").notEmpty().trim();
+    const errors = req.validationErrors();
+    if (errors) {
+        let error_msgs = errors.map(function (err) {
+            return err.msg;
+        });
+        res.json({success: false, error: error_msgs});
+        return;
+    }
+    let doctor = req.user.type === "doctor" ? req.user.username : req.body["peer"],
+        patient = req.user.type === "doctor" ? req.body["peer"] : req.user.username;
+    let to = req.user.username, from = req.body["peer"];
+    let count = 0;
+    if (undeliveredCount[to] != null && undeliveredCount[to][from] != null && undeliveredCount[to][from] !== 0)
+        count = undeliveredCount[to][from];
+    else {
+        res.json({success: true, unread: []});
+        return;
+    }
+    console.log(count);
+    Conversation.findOne({doctor: doctor, patient: patient},
+        (err, conversation) => {
+            if (err != null || conversation == null) {
+                res.json({success: false,});
+            } else {
+                Message.find({cid: conversation._id})
+                    .sort("-stamp")
+                    .limit(count)
+                    .exec((err, docs) => {
+                        if (err != null || docs == null) {
+                            res.json({success: true, unread: []});
+                        } else {
+                            let history = docs.map((msg) => ({
+                                to: msg.fromDoctor === true ? patient : doctor,
+                                from: msg.fromDoctor === true ? doctor : patient,
+                                msg: msg.msg,
+                                stamp: msg.stamp,
+                            }));
+                            undeliveredCount[to][from] = 0;
+                            res.json({
+                                success: true,
+                                unread: history,
+                            });
+                        }
+                    });
+            }
+        });
+});
+
 module.exports = router;
