@@ -1,7 +1,7 @@
 const LocalStrategy = require("passport-local").Strategy;
 const Patient = require("../models/patient");
 const Doctor = require("../models/doctor");
-const crypt = require("bcrypt-nodejs");
+const crypt = require("bcrypt");
 
 function checkPassword(password, hash) {
     return crypt.compareSync(password, hash);

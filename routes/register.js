@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const crypt = require("bcrypt-nodejs");
+const crypt = require("bcrypt");
 const Patient = require("../models/patient");
 const Doctor = require("../models/doctor");
 
