@@ -9,7 +9,7 @@ const mongoose = require("mongoose");
 
 mongoose.set('useFindAndModify', false);
 mongoose.set('useCreateIndex', true);
-mongoose.connect(process.env.MONGO_LOC, {useNewUrlParser: true});
+mongoose.connect(process.env.MONGO_LOC, {useNewUrlParser: true, useUnifiedTopology: true});
 mongoose.Promise = global.Promise;
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "MongoDB connection error:"));
@@ -38,7 +38,7 @@ app.use(expressValidator());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 app.use(session({
-    secret: "secret",
+    secret: process.env.SECRET,
     saveUninitialized: true,
     resave: true,
 }));
